@@ -73,7 +73,6 @@ public class QQ extends JFrame{
 		}
 	}
 
-	// TODO: login and register using hash and database
 	public void init(QQ window){
 		ClientUI guest = new ClientUI();
 		//121.40.143.239

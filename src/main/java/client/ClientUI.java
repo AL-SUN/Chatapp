@@ -7,9 +7,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
 
 public class ClientUI implements ActionListener {
-    private static final String AUDIO_PATH = "./src/main/example"; // todo: change this path
+    private static String AUDIO_PATH;
     private static final String PCM = "audio.pcm";
     private static final String WAV = "audio.wav";
 
@@ -35,6 +36,17 @@ public class ClientUI implements ActionListener {
 
     public void SetVerifyVal(int val) {
         verify = val;
+    }
+
+    public ClientUI() {
+        // Load the audio path from config.properties
+        Properties properties = new Properties();
+        try {
+            properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
+            AUDIO_PATH = properties.getProperty("client.audio"); //TODO: Change this path in config.properties
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void createClient(String username, String ip, int port, boolean isClient) {
