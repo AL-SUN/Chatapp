@@ -1,18 +1,26 @@
 package client;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 
 public class AuthClient {
     private QQLoginUI UI;
     private int verify;
-    private Socket socket;
+    private SSLSocket socket;
     private BufferedReader in;
     private PrintWriter out;
     private final String ip;
     private final int port;
     private boolean running = true;
+    SSLSocketFactory socketFactory;
+
 
     public AuthClient(String ip, int port, QQLoginUI UI) {
         this.ip = ip;
@@ -21,12 +29,29 @@ public class AuthClient {
         this.verify = -1; // -1 default or timeout
     }
 
-    public void connect() throws IOException {
-        socket = new Socket(ip, port);
+    public void init() throws Exception{
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        trustStore.load(new FileInputStream("client.truststore"), "123456".toCharArray());
 
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+        trustManagerFactory.init(trustStore);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+
+        socketFactory = sslContext.getSocketFactory();
+        socket = (SSLSocket) socketFactory.createSocket(ip, port);
+    }
+
+    public void connect() throws IOException {
+        try {
+            init();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         if (!socket.getTcpNoDelay()) socket.setTcpNoDelay(true);
         if (!socket.getKeepAlive()) socket.setKeepAlive(true);
-        if (!socket.getOOBInline()) socket.setOOBInline(true);
+//        if (!socket.getOOBInline()) socket.setOOBInline(true);
 
         in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "GBK"));
         out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "GBK"));
@@ -84,8 +109,6 @@ public class AuthClient {
             synchronized (this) {
                 running = false;
             }
-            socket.shutdownInput();
-            socket.shutdownOutput();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();
