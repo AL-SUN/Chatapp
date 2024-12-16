@@ -205,8 +205,8 @@ public class MsgTask implements Runnable {
         synchronized (Server.sockets) {
             Server.sockets.remove(server.getAddress(socket));
         }
-        socket.shutdownInput();
-        socket.shutdownOutput();
+//        socket.shutdownInput();
+//        socket.shutdownOutput();
         socket.close();
 
         if (notifyUser && !username.equals("Guest")) {

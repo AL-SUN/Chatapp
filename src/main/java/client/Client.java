@@ -18,6 +18,8 @@ public class Client {
     private String Client_username;
     public String chatRoomName;
 
+    SSLSocketFactory socketFactory;
+
     public Client(String username, String ip, int port, ClientUI UI) throws Exception {
         this.ip = ip;
         this.port = port;
@@ -35,7 +37,7 @@ public class Client {
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
 
-        SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+        socketFactory = sslContext.getSocketFactory();
         socket = (SSLSocket) socketFactory.createSocket(ip, port);
 
         connect(username);
@@ -46,7 +48,7 @@ public class Client {
 
         if (!socket.getKeepAlive()) socket.setKeepAlive(true);
 
-        if (!socket.getOOBInline()) socket.setOOBInline(true);
+//        if (!socket.getOOBInline()) socket.setOOBInline(true);
 
         in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "GBK"));
         out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "GBK"));
@@ -128,16 +130,16 @@ public class Client {
     public void disconnect() throws IOException, InterruptedException {
         speak("exit");
         Thread.sleep(1000);
-        socket.shutdownInput();
-        socket.shutdownOutput();
+//        socket.shutdownInput();
+//        socket.shutdownOutput();
         socket.close();
     }
 
     public void disconnect_file(SSLSocket skt) throws IOException, InterruptedException {
         speak_file("exit", skt);
         Thread.sleep(1000);
-        skt.shutdownInput();
-        skt.shutdownOutput();
+//        skt.shutdownInput();
+//        skt.shutdownOutput();
         skt.close();
     }
 
@@ -161,9 +163,7 @@ public class Client {
                     file_num = Integer.valueOf(1 + file_num.intValue());
                 }
 
-                // Create SSL socket for file transfer
-                SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-                SSLSocket socket_file = (SSLSocket) factory.createSocket(ip, port + file_num.intValue());
+                SSLSocket socket_file = (SSLSocket) socketFactory.createSocket(ip, port + file_num.intValue());
 
                 DataOutputStream dos_file = new DataOutputStream(socket_file.getOutputStream());
                 File file = new File(path);
@@ -207,8 +207,7 @@ public class Client {
                 }
 
                 // Create SSL socket for file transfer
-                SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-                SSLSocket socket_file = (SSLSocket) factory.createSocket(ip, port + file_num.intValue());
+                SSLSocket socket_file = (SSLSocket) socketFactory.createSocket(ip, port + file_num.intValue());
 
                 BufferedReader in_file = new BufferedReader(new InputStreamReader(socket_file.getInputStream()));
                 

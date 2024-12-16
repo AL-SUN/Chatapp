@@ -17,6 +17,6 @@ public class local_test {
         new QQLoginUI(); // new UI, take a look!
         new QQLoginUI(); // new UI, take a look!
 
-       Server.ChatRoom.close();
+//       Server.ChatRoom.close();
     }
 }
