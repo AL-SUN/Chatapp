@@ -145,9 +145,9 @@ public class MsgTask implements Runnable {
                 out.write("Duplicate\r\n");
             } else {
                 out.write("RegFail\r\n");
+                e.printStackTrace();
             }
             out.flush();
-            e.printStackTrace();
             return;
         }
 

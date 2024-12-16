@@ -32,10 +32,12 @@ public class ClientUI implements ActionListener {
     private JButton downloadAudioBtn;
     private JButton leaveBtn;
 
+    ChatroomUI chatroomUI;
+
     //login verification: -1 default or timeout; 0 username or password error; 1 login successful
     private int verify = -1;
 
-    public void SetVerifyVal(int val) {
+    public void setVerify(int val) {
         verify = val;
     }
 
@@ -46,12 +48,12 @@ public class ClientUI implements ActionListener {
 
     public void createClient(String username, String ip, int port, boolean isClient) {
         try {
-            client = new Client(username, ip, port, this);
+            client = new Client(username, ip, port, new ChatroomUI(username, ip, port));
             this.username = username;
             msgList = new String[MAX_MSG];
             index = 0;
-            if(isClient){
-                getJFrame().setVisible(true); // no UI if temporary call to connect server
+            if(isClient){ // no UI if temporary call in login
+                getJFrame().setVisible(true);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -225,7 +227,7 @@ public class ClientUI implements ActionListener {
                 showDialog("Invalid upload command.");
                 return;
             }
-            client.sendFile(parts[1], client.GetIp(), client.GetPort());
+//            client.sendFile(parts[1], client.GetIp(), client.GetPort());
         } else if (message.startsWith("download")) {
             String filename = message.substring(9);
             client.receiveFile(filename, client.GetIp(), client.GetPort());
@@ -252,7 +254,7 @@ public class ClientUI implements ActionListener {
         String wavPath = AUDIO_PATH + File.separatorChar + WAV;
 
         Pcm2Wav.convertAudioFiles(new String[]{pcmPath, wavPath});
-        client.sendFile(wavPath, client.GetIp(), client.GetPort());
+//        client.sendFile(wavPath, client.GetIp(), client.GetPort());
         System.out.printf("Record the AUDIO, path:%s\n", wavPath);
 
         audioBtn.setText("Record");

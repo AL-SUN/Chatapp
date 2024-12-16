@@ -7,7 +7,7 @@ import java.net.SocketException;
 public class Client {
     private final String ip;
     private final int port;
-    private final ClientUI UI;
+    private final ChatroomUI UI;
     private Socket socket;
     private BufferedReader in;
     private PrintWriter out;
@@ -17,7 +17,7 @@ public class Client {
     private String Client_username;
     public String chatRoomName;
 
-    public Client(String username, String ip, int port, ClientUI UI) throws IOException {
+    public Client(String username, String ip, int port, ChatroomUI UI) throws IOException {
         this.ip = ip;
         this.port = port;
         this.UI = UI;
@@ -45,7 +45,9 @@ public class Client {
             try {
                 DataInputStream dis = new DataInputStream(socket.getInputStream());
                 while (true) {
-                    if (isFile) {
+                    String str = in.readLine();
+                    if (str == null) break;
+                    if ("download".equals(str)){
                         String fileName = dis.readUTF();
                         long fileLen = dis.readLong();
                         File directory = new File(savePath);
@@ -60,33 +62,8 @@ public class Client {
                             fos.flush();
                         }
                         fos.close();
-                        isFile = false;
-                        continue;
                     }
-                    String str = in.readLine();
-                    if (str == null) break;
-                    if ("download".equals(str)) isFile = false;
-                    else if ("NotVerified".equals(str)){
-                        UI.SetVerifyVal(0);
-                        UI.showDialog("Please check your username and password.");
-                    }
-                    else if ("Verified".equals(str)){
-                        UI.SetVerifyVal(1);
-//                        UI.showDialog("LoginSucc!");
-                    }
-                    else if ("Duplicate".equals(str)){
-                        UI.SetVerifyVal(-2);
-                        UI.showDialog("Username has been used!");
-                    }
-                    else if ("RegFail".equals(str)){
-                        UI.SetVerifyVal(-3);
-                        UI.showDialog("RegFail!");
-                    }
-                    else if ("RegSucc".equals(str)){
-                        UI.SetVerifyVal(3);
-                        UI.showDialog("RegSucc!");
-                    }
-                    else UI.showMsg(str);
+                    else UI.showMsg(str); // broadcast message
                 }
             } catch (IOException e) {
                 if (!(e instanceof SocketException)) e.printStackTrace();
@@ -141,7 +118,11 @@ public class Client {
         out_file.flush();
     }
 
-    public void sendFile(String path, String ip, int port) throws IOException, InterruptedException {
+    public void sendFile(File file, String ip, int port) throws IOException, InterruptedException {
+        if (!file.exists()){
+            System.err.println("File not found!");
+            return;
+        }
         new Thread(() -> {
             try {
                 synchronized (file_num) {
@@ -149,14 +130,7 @@ public class Client {
                 }
                 Socket socket_file = new Socket(ip, port + file_num.intValue());
                 DataOutputStream dos_file = new DataOutputStream(socket_file.getOutputStream());
-                File file = new File(path);
-                if (!file.exists()){
-                    disconnect_file(socket_file);
-                    synchronized (file_num) {
-                        file_num = Integer.valueOf(file_num.intValue() - 1);
-                    } 
-                    return;
-                }
+
                 speak_file(this.Client_username, socket_file);
                 speak_file("upload", socket_file);
                 Thread.sleep(500);

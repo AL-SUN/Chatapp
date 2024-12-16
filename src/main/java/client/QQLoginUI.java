@@ -3,7 +3,6 @@ package client;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.util.Properties;
 import static Utils.ResourceLoader.loadProperties;
 
@@ -12,6 +11,8 @@ public class QQLoginUI extends JFrame {
 	private JPasswordField passwordField;
 	private JButton loginButton;
 	private JButton registerButton;
+
+	private AuthClient guest;
 
 	private String IP;
 	private int Port;
@@ -22,6 +23,8 @@ public class QQLoginUI extends JFrame {
 		Properties properties = loadProperties();
 		IP = properties.getProperty("server.ip");
 		Port = Integer.parseInt(properties.getProperty("server.port"));
+
+		guest = new AuthClient(IP, Port, QQLoginUI.this);
 		
 		// Set up the frame
 		setTitle("Chatapp");
@@ -120,7 +123,6 @@ public class QQLoginUI extends JFrame {
 	private class LoginWorker extends SwingWorker<Boolean, Void> {
 		private final String username;
 		private final String password;
-		private ClientUI guest;
 
 		public LoginWorker(String username, String password) {
 			this.username = username;
@@ -130,11 +132,7 @@ public class QQLoginUI extends JFrame {
 		@Override
 		protected Boolean doInBackground() throws Exception {
 			// login verification logic
-			guest = new ClientUI();
-			guest.createClient("Guest", IP, Port, false);
-
 			int verify = guest.GuestSpeakAndVerify("Login " + username + " " + password);
-			guest.shutDownClient();
             return verify == 1;
         }
 
@@ -144,7 +142,7 @@ public class QQLoginUI extends JFrame {
 				boolean loginSuccess = get();
 				if (loginSuccess) {
 					QQLoginUI.this.dispose();
-					guest.createClient(username, IP, Port, true);
+					new ChatroomUI(username, IP, Port).setVisible(true);
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -165,10 +163,11 @@ public class QQLoginUI extends JFrame {
 		}
 
 		// registration logic
-		ClientUI guest = new ClientUI();
-		guest.createClient("Guest", IP, Port, false);
 		guest.GuestSpeakAndVerify("Register " + username + " " + password);
-		guest.shutDownClient();
+	}
+
+	public void showDialog(String s) {
+		JOptionPane.showMessageDialog(this, s);
 	}
 
 	public static void main(String[] args) {
