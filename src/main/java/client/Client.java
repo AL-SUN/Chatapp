@@ -1,14 +1,15 @@
 package client;
 
 import java.io.*;
-import java.net.Socket;
+import javax.net.ssl.*;
 import java.net.SocketException;
+import java.security.KeyStore;
 
 public class Client {
     private final String ip;
     private final int port;
     private final ClientUI UI;
-    private Socket socket;
+    private SSLSocket socket;
     private BufferedReader in;
     private PrintWriter out;
     private DataOutputStream dos;
@@ -17,18 +18,30 @@ public class Client {
     private String Client_username;
     public String chatRoomName;
 
-    public Client(String username, String ip, int port, ClientUI UI) throws IOException {
+    public Client(String username, String ip, int port, ClientUI UI) throws Exception {
         this.ip = ip;
         this.port = port;
         this.UI = UI;
         this.file_num = 0;
         this.Client_username = username;
+
+        // Load client truststore
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        trustStore.load(new FileInputStream("client.truststore"), "123456".toCharArray());
+
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+        trustManagerFactory.init(trustStore);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+
+        SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+        socket = (SSLSocket) socketFactory.createSocket(ip, port);
+
         connect(username);
     }
 
     public void connect(String username) throws IOException {
-        socket = new Socket(ip, port);
-
         if (!socket.getTcpNoDelay()) socket.setTcpNoDelay(true);
 
         if (!socket.getKeepAlive()) socket.setKeepAlive(true);
@@ -120,7 +133,7 @@ public class Client {
         socket.close();
     }
 
-    public void disconnect_file(Socket skt) throws IOException, InterruptedException {
+    public void disconnect_file(SSLSocket skt) throws IOException, InterruptedException {
         speak_file("exit", skt);
         Thread.sleep(1000);
         skt.shutdownInput();
@@ -133,7 +146,7 @@ public class Client {
         out.flush();
     }
 
-    public void speak_file(String str, Socket skt) throws IOException {
+    public void speak_file(String str, SSLSocket skt) throws IOException {
         System.out.println(str); // for debugging
         PrintWriter out_file;
         out_file = new PrintWriter(skt.getOutputStream());
@@ -147,7 +160,11 @@ public class Client {
                 synchronized (file_num) {
                     file_num = Integer.valueOf(1 + file_num.intValue());
                 }
-                Socket socket_file = new Socket(ip, port + file_num.intValue());
+
+                // Create SSL socket for file transfer
+                SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                SSLSocket socket_file = (SSLSocket) factory.createSocket(ip, port + file_num.intValue());
+
                 DataOutputStream dos_file = new DataOutputStream(socket_file.getOutputStream());
                 File file = new File(path);
                 if (!file.exists()){
@@ -188,8 +205,11 @@ public class Client {
                 synchronized (file_num) {
                     file_num = Integer.valueOf(1 + file_num.intValue());
                 }
-                
-                Socket socket_file = new Socket(ip, port + file_num.intValue());
+
+                // Create SSL socket for file transfer
+                SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                SSLSocket socket_file = (SSLSocket) factory.createSocket(ip, port + file_num.intValue());
+
                 BufferedReader in_file = new BufferedReader(new InputStreamReader(socket_file.getInputStream()));
                 
                 speak_file(this.Client_username, socket_file);

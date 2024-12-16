@@ -53,7 +53,7 @@ public class ClientUI implements ActionListener {
             if(isClient){
                 getJFrame().setVisible(true); // no UI if temporary call to connect server
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
