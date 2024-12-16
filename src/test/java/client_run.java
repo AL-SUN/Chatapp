@@ -20,7 +20,7 @@ public class client_run {
         // }
 //        new QQ();
 
-        new QQLoginUI(); // new UI, take a look!
+//        new QQLoginUI(); // new UI, take a look!
         new QQLoginUI(); // new UI, take a look!
 
 

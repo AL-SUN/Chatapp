@@ -72,11 +72,11 @@ public class Client {
                     }
                     else if ("Verified".equals(str)){
                         UI.SetVerifyVal(1);
-                        UI.showDialog("LoginSucc!");
+//                        UI.showDialog("LoginSucc!");
                     }
                     else if ("Duplicate".equals(str)){
                         UI.SetVerifyVal(-2);
-                        UI.showDialog("Unavailable Username!");
+                        UI.showDialog("Username has been used!");
                     }
                     else if ("RegFail".equals(str)){
                         UI.SetVerifyVal(-3);
@@ -134,6 +134,7 @@ public class Client {
     }
 
     public void speak_file(String str, Socket skt) throws IOException {
+        System.out.println(str); // for debugging
         PrintWriter out_file;
         out_file = new PrintWriter(skt.getOutputStream());
         out_file.write(str + "\r\n");

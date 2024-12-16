@@ -25,7 +25,7 @@ public class Server {
 
     public Server(int localPort, String chatRoomName) throws IOException {
         Properties properties = loadProperties();
-        SAVE_PATH = properties.getProperty("server.filepath"); //TODO: Change this path in config.properties
+        SAVE_PATH = properties.getProperty("server.tmpdir"); //TODO: Change this path in config.properties
 
         this.localPort = localPort;
         this.chatRoomName = chatRoomName;
@@ -102,8 +102,8 @@ public class Server {
         server.close();
     }
 
-    public void broadcast(String from, String msg) throws IOException {
-        new DatabaseConnection().saveMsg(from, msg);
+    public int broadcast(String from, String msg) throws IOException {
+        int msgId= new DatabaseConnection().saveMsg(from, msg);
         ChatRoom.saveMsg(from + ": " + msg);
         PrintWriter out;
         synchronized (sockets) {
@@ -113,6 +113,7 @@ public class Server {
                 out.flush();
             }
         }
+        return msgId;
     }
 
     public void OfflineMsg(Socket skt) throws IOException {

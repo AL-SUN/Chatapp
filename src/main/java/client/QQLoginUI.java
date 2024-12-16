@@ -18,8 +18,10 @@ public class QQLoginUI extends JFrame {
 	// cloud: "104.198.172.29", 60001
 
 	public QQLoginUI() {
-		// Load the server IP and port from config.properties
-		loadProperty();	
+		// TODO: change to the server's IP address and port in config.properties
+		Properties properties = loadProperties();
+		IP = properties.getProperty("server.ip");
+		Port = Integer.parseInt(properties.getProperty("server.port"));
 		
 		// Set up the frame
 		setTitle("Chatapp");
@@ -35,13 +37,6 @@ public class QQLoginUI extends JFrame {
 		setLocationRelativeTo(null);
 		setVisible(true);
 	}
-
-	private void loadProperty(){
-		Properties properties = loadProperties();
-        // TODO: change to the server's IP address and port in config.properties
-        IP = properties.getProperty("server.ip");
-        Port = Integer.parseInt(properties.getProperty("server.port"));
-    }
 
 	private void initComponents() {
 		GridBagConstraints gbc = new GridBagConstraints();
@@ -119,16 +114,41 @@ public class QQLoginUI extends JFrame {
 					JOptionPane.ERROR_MESSAGE);
 			return;
 		}
+		new LoginWorker(username,password).execute();
+	}
 
-		// login verification logic
-		ClientUI guest = new ClientUI();
-		guest.createClient("Guest", IP, Port, false);
+	private class LoginWorker extends SwingWorker<Boolean, Void> {
+		private final String username;
+		private final String password;
+		private ClientUI guest;
 
-		int verify = guest.GuestSpeakAndVerify("Login " + username + " " + password);
-		if (verify == 1) {
+		public LoginWorker(String username, String password) {
+			this.username = username;
+			this.password = password;
+		}
+
+		@Override
+		protected Boolean doInBackground() throws Exception {
+			// login verification logic
+			guest = new ClientUI();
+			guest.createClient("Guest", IP, Port, false);
+
+			int verify = guest.GuestSpeakAndVerify("Login " + username + " " + password);
 			guest.shutDownClient();
-			this.setVisible(false);
-			guest.createClient(username, IP, Port, true);
+            return verify == 1;
+        }
+
+		@Override
+		protected void done() {
+			try {
+				boolean loginSuccess = get();
+				if (loginSuccess) {
+					QQLoginUI.this.dispose();
+					guest.createClient(username, IP, Port, true);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

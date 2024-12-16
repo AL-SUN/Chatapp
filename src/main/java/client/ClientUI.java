@@ -41,8 +41,7 @@ public class ClientUI implements ActionListener {
 
     public ClientUI() {
         Properties properties = loadProperties();
-        //TODO: Change audio path in config.properties
-        AUDIO_PATH = properties.getProperty("client.audio");
+        AUDIO_PATH = properties.getProperty("client.audio");  //TODO: Change audio path in config.properties
     }
 
     public void createClient(String username, String ip, int port, boolean isClient) {
@@ -51,7 +50,9 @@ public class ClientUI implements ActionListener {
             this.username = username;
             msgList = new String[MAX_MSG];
             index = 0;
-            getJFrame().setVisible(isClient); // not show UI if temporary call for connecting to the server
+            if(isClient){
+                getJFrame().setVisible(true); // no UI if temporary call to connect server
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -84,16 +85,16 @@ public class ClientUI implements ActionListener {
     }
 
     private JFrame getJFrame() {
-        if (jFrame == null) {
-            jFrame = new JFrame();
-            jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            jFrame.setResizable(false);
-            jFrame.setLocation(new Point(500, 265));
-            jFrame.setJMenuBar(new JMenuBar());
-            jFrame.setSize(350, 410);
-            jFrame.setContentPane(getJContentPane());
-            jFrame.setTitle("ChatRoom_Client");
-        }
+        jFrame = new JFrame();
+        jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        jFrame.setResizable(false);
+        jFrame.setLocation(new Point(500, 265));
+
+        jFrame.setJMenuBar(new JMenuBar());
+        jFrame.setSize(350, 410);
+        jFrame.setContentPane(getJContentPane());
+        jFrame.setTitle("ChatRoom_Client");
+
         return jFrame;
     }
 
@@ -238,7 +239,7 @@ public class ClientUI implements ActionListener {
         audioBtn.setText("Stop");
         new Thread(() -> {
             try {
-                AudioRecord.save(AUDIO_PATH + File.separatorChar + PCM);
+                AudioRecord.save(AUDIO_PATH + File.separatorChar +  PCM);
             } catch (IOException | LineUnavailableException ioException) {
                 ioException.printStackTrace();
             }

@@ -17,7 +17,6 @@ public class MsgTask implements Runnable {
     private final PrintWriter out;
     private final DataOutputStream dos;
     private final String username;
-    private int fileCount;
     private boolean connected;
     private long timestamp; // last time received a message
     private int timeout; // count of timeout
@@ -31,7 +30,6 @@ public class MsgTask implements Runnable {
         this.in = in;
         this.out = out;
         this.username = username;
-        fileCount = 0;
         connected = true;
         timestamp = new Date().getTime();
         timeout = 0;
@@ -110,9 +108,8 @@ public class MsgTask implements Runnable {
 
     private void handleFileUpload(DataInputStream dataInput) throws IOException {
         int bufferSize = 1024;
-        fileCount++;
-        String fileName = dataInput.readUTF();
-        fileName = username + "_" + fileCount + "_" + fileName;
+        String fileBaseName = dataInput.readUTF();
+        String fileName = username + "_" + new Date().getTime() + "_" + fileBaseName;
         long fileLength = dataInput.readLong();
 
         File directory = new File(localPath);  // TODO: TBD where to save the file
@@ -131,8 +128,10 @@ public class MsgTask implements Runnable {
                 fileOutput.write(buffer, 0, bytesRead);
             }
 
+            // TODO: broadcast and save name should distinguish between audio and file
             server.broadcast(Server.ADMIN, "Received a file from user: " + username);
-            server.broadcast(Server.ADMIN, "[File Name: " + fileName + "] [Size: " + getFormatFileSize(fileLength) + "]");
+            int msgId = server.broadcast(Server.ADMIN, "[File Name: " + fileBaseName + "] [Size: " + getFormatFileSize(fileLength) + "]");
+            database.saveFile(msgId, fileName, "File");
         }
     }
 
@@ -237,72 +236,5 @@ public class MsgTask implements Runnable {
         }
         return length + "B";
     }
-
-    private static boolean findFile(File target, String ext) {
-        if (target == null)
-            return false;
-        //����ļ���Ŀ¼
-        if (target.isDirectory()) {
-            File[] files = target.listFiles();
-            if (files != null) {
-                for (File f : files) {
-                    if(findFile(f, ext)){
-                        return true;
-                    }
-                }
-                return false;
-            }
-            return false;
-        } 
-        if(target.isFile()) {
-            String name = target.getName();
-            System.out.printf("else 1 Account detail: !!%s!! , ext:!!%s!!\n", name, ext);
-            String user_target = name.split(" ")[0];
-            String psw_target = name.split(" ")[1];
-            String user_input = ext.split(" ")[0];
-            String psw_input = ext.split(" ")[1];
-            if (user_input.equals(user_target) && psw_input.equals(psw_target)) {
-                System.out.printf("else 2 Account detail: !!%s!! , ext:!!%s!!\n", name, ext);
-                return true;
-            }
-            else{
-                return false;
-            }
-        }
-        return false;
-	}
-
-    private static boolean findUserName(File target, String ext) {
-        if (target == null)
-            return false;
-        if (target.isDirectory()) {
-            File[] files = target.listFiles();
-            if (files != null) {
-                for (File f : files) {
-                    if(findUserName(f, ext)){
-                        return true;
-                    }
-                }
-                return false;
-            }
-            return false;
-        } 
-        if(target.isFile()) {
-            String name = target.getName();
-            System.out.printf("else 1 UserName detail: !!%s!! , ext:!!%s!!\n", name, ext);
-            String user_target = name.split(" ")[0];
-            //String psw_target = name.split(" ")[1];
-            String user_input = ext.split(" ")[0];
-            //String psw_input = ext.split(" ")[1];
-            if (user_input.equals(user_target)) {
-                System.out.printf("else 2 UserName detail: !!%s!! , ext:!!%s!!\n", name, ext);
-                return true;
-            }
-            else{
-                return false;
-            }
-        }
-        return false;
-	}
 
 }

@@ -25,9 +25,9 @@ public class AudioRecord {
     public static void save(String path) throws IOException, LineUnavailableException {
         running = true;
         File file = new File(path);
-        if (file.isDirectory()) {
-            if (!file.exists()) file.mkdirs();
-            file.createNewFile();
+        // ensure the parent directory exists
+        if(!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
         }
 
         AudioFormat audioFormat = new AudioFormat(ENCODING, RATE, SAMPLE_SIZE, CHANNELS, (SAMPLE_SIZE / 8) * CHANNELS,

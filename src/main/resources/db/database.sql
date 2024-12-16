@@ -27,6 +27,18 @@ CREATE TABLE IF NOT EXISTS messages (
     FOREIGN KEY (sender) REFERENCES users (username)
 );
 
+CREATE TABLE IF NOT EXISTS Attachments (
+    attachment_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    file_name VARCHAR(255) NOT NULL,
+    message_id INTEGER NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (message_id) REFERENCES Messages(mid) ON DELETE CASCADE
+);
+
+-- INSERT INTO Attachments (file_name, message_id, file_path, file_type) VALUES (?, ?, '', ?)
+
 -- -- load latest messages
 -- SELECT sender, message, sent_at
 -- FROM messages
