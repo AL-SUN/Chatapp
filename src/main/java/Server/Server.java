@@ -1,12 +1,8 @@
 package Server;
 
+import javax.net.ssl.*;
 import java.io.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.security.KeyStore;
 import java.util.*;
 import static Utils.ResourceLoader.loadProperties;
 
@@ -15,32 +11,48 @@ public class Server {
 
     private static String SAVE_PATH;
 
-    public static final Map<String, Socket> sockets = new LinkedHashMap<>();
+    public static final Map<String, SSLSocket> sockets = new LinkedHashMap<>();
     public static final String ADMIN = "System";
     private final int localPort;
-    private ServerSocket server;
-    private ServerSocket[] fileServers;
+    private SSLServerSocket server;
+    private SSLServerSocket[] fileServers;
     private final String chatRoomName;
 
 
-    public Server(int localPort, String chatRoomName) throws IOException {
+    public Server(int localPort, String chatRoomName) throws Exception {
         Properties properties = loadProperties();
         SAVE_PATH = properties.getProperty("server.tmpdir"); //TODO: Change this path in config.properties
 
         this.localPort = localPort;
         this.chatRoomName = chatRoomName;
+
+        // Load server keystore
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream("server.keystore"), "123456".toCharArray());
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+        keyManagerFactory.init(keyStore, "123456".toCharArray());
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+        SSLServerSocketFactory socketFactory = sslContext.getServerSocketFactory();
+        server = (SSLServerSocket) socketFactory.createServerSocket(localPort);
+
+        // Initialize file servers
+        fileServers = new SSLServerSocket[5];
+        for (int i = 0; i < fileServers.length; i++) {
+            fileServers[i] = (SSLServerSocket) socketFactory.createServerSocket(localPort + i + 1);
+        }
+
         startListen();
     }
 
     private void startListen() throws IOException {
-        server = new ServerSocket(localPort);
         createClientHandlerThread(server, true);
 
-        // Create 5 file servers
-        fileServers = new ServerSocket[5];
-        for (int i = 0; i < fileServers.length; i++) {
-            fileServers[i] = new ServerSocket(localPort + i + 1);
-            createClientHandlerThread(fileServers[i], false);
+        for (SSLServerSocket fileServer : fileServers) {
+            createClientHandlerThread(fileServer, false);
         }
     }
 
@@ -49,11 +61,11 @@ public class Server {
      * @param serverSocket the server socket to accept connections
      * @param isMainServer whether this server is the main server
      */
-    private void createClientHandlerThread(ServerSocket serverSocket, boolean isMainServer) {
+    private void createClientHandlerThread(SSLServerSocket serverSocket, boolean isMainServer) {
         new Thread(() -> {
             try {
                 while (true) {
-                    Socket socket = serverSocket.accept();
+                    SSLSocket socket = (SSLSocket) serverSocket.accept();
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     String username = in.readLine();
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -92,7 +104,7 @@ public class Server {
         broadcast(ADMIN, "The chatroom is about to close");
         Thread.sleep(1000);
         synchronized (sockets) {
-            for (Socket socket : sockets.values()) {
+            for (SSLSocket socket : sockets.values()) {
                 socket.shutdownInput();
                 socket.shutdownOutput();
                 socket.close();
@@ -107,7 +119,7 @@ public class Server {
         ChatRoom.saveMsg(from + ": " + msg);
         PrintWriter out;
         synchronized (sockets) {
-            for (Socket socket : sockets.values()) {
+            for (SSLSocket socket : sockets.values()) {
                 out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "GBK"));
                 out.write(from + ": " + msg + "\r\n");
                 out.flush();
@@ -116,7 +128,7 @@ public class Server {
         return msgId;
     }
 
-    public void OfflineMsg(Socket skt) throws IOException {
+    public void OfflineMsg(SSLSocket skt) throws IOException {
         PrintWriter out;
         synchronized (ChatRoom.msgList) {   
             for (String str : ChatRoom.msgList) {
@@ -128,7 +140,7 @@ public class Server {
     }
 
 
-    public String getAddress(Socket socket) {
+    public String getAddress(SSLSocket socket) {
         return socket.getInetAddress() + ":" + socket.getPort();
     }
 

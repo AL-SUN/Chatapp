@@ -55,7 +55,7 @@ public class ClientUI implements ActionListener {
             if(isClient){ // no UI if temporary call in login
                 getJFrame().setVisible(true);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

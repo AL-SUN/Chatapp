@@ -1,8 +1,8 @@
 package Server;
 
+import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.math.RoundingMode;
-import java.net.Socket;
 import java.net.SocketException;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -12,7 +12,7 @@ public class MsgTask implements Runnable {
     private static final String HEARTBEAT = "[usage for heartbeat packet]";
     private final Server server;
     private final String localPath;
-    private final Socket socket;
+    private final SSLSocket socket;
     private final BufferedReader in;
     private final PrintWriter out;
     private final DataOutputStream dos;
@@ -23,7 +23,7 @@ public class MsgTask implements Runnable {
 
     private final DatabaseConnection database;
 
-    public MsgTask(Server server, String localPath, Socket socket, BufferedReader in, PrintWriter out, String username) throws IOException {
+    public MsgTask(Server server, String localPath, SSLSocket socket, BufferedReader in, PrintWriter out, String username) throws IOException {
         this.server = server;
         this.localPath = localPath;
         this.socket = socket;
@@ -205,8 +205,8 @@ public class MsgTask implements Runnable {
         synchronized (Server.sockets) {
             Server.sockets.remove(server.getAddress(socket));
         }
-        socket.shutdownInput();
-        socket.shutdownOutput();
+//        socket.shutdownInput();
+//        socket.shutdownOutput();
         socket.close();
 
         if (notifyUser && !username.equals("Guest")) {

@@ -15,7 +15,7 @@ public class ChatRoom {
         ChatRoom.msgList = new LinkedList<>();
         try {
             server = new Server(localPort, name);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
