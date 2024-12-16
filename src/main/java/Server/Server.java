@@ -8,6 +8,8 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import static Utils.ResourceLoader.loadProperties;
+
 
 public class Server {
 
@@ -22,8 +24,7 @@ public class Server {
 
 
     public Server(int localPort, String chatRoomName) throws IOException {
-        Properties properties = new Properties();
-        properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
+        Properties properties = loadProperties();
         SAVE_PATH = properties.getProperty("server.filepath"); //TODO: Change this path in config.properties
 
         this.localPort = localPort;
@@ -102,7 +103,7 @@ public class Server {
     }
 
     public void broadcast(String from, String msg) throws IOException {
-        new MySQLConnection().saveMsg(from, msg);
+        new DatabaseConnection().saveMsg(from, msg);
         ChatRoom.saveMsg(from + ": " + msg);
         PrintWriter out;
         synchronized (sockets) {

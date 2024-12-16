@@ -1,25 +1,25 @@
 CREATE DATABASE IF NOT EXISTS chatapp;
 USE chatapp;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) PRIMARY KEY,
     password VARCHAR(300) NOT NULL
 );
 
-INSERT INTO users (username, password) VALUES ('System', 'Test1234'); -- default user
+INSERT IGNORE INTO users (username, password) VALUES ('System', '1234'); -- default user
 
-CREATE TABLE rooms (
-    rid INT AUTO_INCREMENT PRIMARY KEY,     
+CREATE TABLE IF NOT EXISTS rooms (
+    rid INTEGER PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,             
     -- type ENUM('public', 'private') NOT NULL DEFAULT 'public',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO rooms (name) VALUES ('default'); -- default room
+INSERT IGNORE INTO rooms (name) VALUES ('default'); -- default room
 
-CREATE TABLE messages (
-    mid INT AUTO_INCREMENT PRIMARY KEY,      
-    room_id INT NOT NULL,               
+CREATE TABLE IF NOT EXISTS messages (
+    mid INTEGER PRIMARY KEY AUTO_INCREMENT,
+    room_id INTEGER NOT NULL,
     sender  VARCHAR(50) NOT NULL,
     message TEXT NOT NULL,                
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 

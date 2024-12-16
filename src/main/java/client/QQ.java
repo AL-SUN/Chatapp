@@ -10,6 +10,7 @@ import java.sql.DriverManager;
 import java.util.Properties;
 
 import static Utils.ResourceLoader.loadImage;
+import static Utils.ResourceLoader.loadProperties;
 
 import javax.swing.*;
 
@@ -62,15 +63,9 @@ public class QQ extends JFrame{
 	}
 
 	private void loadProperty(){
-		Properties properties = new Properties();
-		try {
-			// TODO: change to the server's IP address and port in config.properties
-			properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
-			IP = properties.getProperty("server.ip");
-			port = Integer.parseInt(properties.getProperty("server.port"));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		Properties properties = loadProperties();
+		IP = properties.getProperty("server.ip");
+		port = Integer.parseInt(properties.getProperty("server.port"));
 	}
 
 	public void init(QQ window){

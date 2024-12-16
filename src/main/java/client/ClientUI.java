@@ -8,6 +8,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+import static Utils.ResourceLoader.loadProperties;
 
 public class ClientUI implements ActionListener {
     private static String AUDIO_PATH;
@@ -39,14 +40,9 @@ public class ClientUI implements ActionListener {
     }
 
     public ClientUI() {
-        // Load the audio path from config.properties
-        Properties properties = new Properties();
-        try {
-            properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
-            AUDIO_PATH = properties.getProperty("client.audio"); //TODO: Change this path in config.properties
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Properties properties = loadProperties();
+        //TODO: Change audio path in config.properties
+        AUDIO_PATH = properties.getProperty("client.audio");
     }
 
     public void createClient(String username, String ip, int port, boolean isClient) {

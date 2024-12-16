@@ -22,7 +22,7 @@ public class MsgTask implements Runnable {
     private long timestamp; // last time received a message
     private int timeout; // count of timeout
 
-    private final MySQLConnection database;
+    private final DatabaseConnection database;
 
     public MsgTask(Server server, String localPath, Socket socket, BufferedReader in, PrintWriter out, String username) throws IOException {
         this.server = server;
@@ -36,7 +36,7 @@ public class MsgTask implements Runnable {
         timestamp = new Date().getTime();
         timeout = 0;
         dos = new DataOutputStream(socket.getOutputStream());
-        database = new MySQLConnection();
+        database = new DatabaseConnection();
     }
 
     @Override

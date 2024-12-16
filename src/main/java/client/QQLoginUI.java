@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.util.Properties;
+import static Utils.ResourceLoader.loadProperties;
 
 public class QQLoginUI extends JFrame {
 	private JTextField usernameField;
@@ -36,16 +37,11 @@ public class QQLoginUI extends JFrame {
 	}
 
 	private void loadProperty(){
-		Properties properties = new Properties();
-		try {
-			// TODO: change to the server's IP address and port in config.properties
-			properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
-			IP = properties.getProperty("server.ip");
-			Port = Integer.parseInt(properties.getProperty("server.port"));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+		Properties properties = loadProperties();
+        // TODO: change to the server's IP address and port in config.properties
+        IP = properties.getProperty("server.ip");
+        Port = Integer.parseInt(properties.getProperty("server.port"));
+    }
 
 	private void initComponents() {
 		GridBagConstraints gbc = new GridBagConstraints();

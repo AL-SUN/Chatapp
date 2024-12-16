@@ -30,6 +30,12 @@
             <version>0.4</version>
         </dependency>
 
+        <!-- sqlite-jdbc -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.47.1.0</version>
+        </dependency>
 
         <!-- logging tools (Optional, for easy debugging)
         <dependency>
