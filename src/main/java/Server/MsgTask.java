@@ -52,8 +52,8 @@ public class MsgTask implements Runnable {
                 if ("exit".equals(message)) {
                     handleExitCommand();
                 }
-                else if ("upload".equals(message)) {
-                    handleFileUpload(dataInput);
+                else if (message.startsWith("upload")) {
+                    handleFileUpload(dataInput, message.contains("voice"));
                 }
                 else if (message.startsWith("Register ")) {
                     handleRegistration(message);
@@ -106,7 +106,7 @@ public class MsgTask implements Runnable {
         disconnect(isMainServer); // notify other users if this is the main server
     }
 
-    private void handleFileUpload(DataInputStream dataInput) throws IOException {
+    private void handleFileUpload(DataInputStream dataInput, boolean isVoice) throws IOException {
         int bufferSize = 1024;
         String fileBaseName = dataInput.readUTF();
         String fileName = username + "_" + new Date().getTime() + "_" + fileBaseName;
@@ -128,10 +128,16 @@ public class MsgTask implements Runnable {
                 fileOutput.write(buffer, 0, bytesRead);
             }
 
-            // TODO: broadcast and save name should distinguish between audio and file
-            server.broadcast(Server.ADMIN, "Received a file from user: " + username);
-            int msgId = server.broadcast(Server.ADMIN, "[File Name: " + fileBaseName + "] [Size: " + getFormatFileSize(fileLength) + "]");
-            database.saveFile(msgId, fileName, "File");
+            // TODO: How to match file with the database
+            if (isVoice) {
+                int attachmentId = database.saveFile(fileName, "Voice");
+                int msgId = server.broadcast(username, "Sent a voice message: [Size: " + getFormatFileSize(fileLength) + "] [ID: " + attachmentId + "]");
+                database.linkFile(msgId, attachmentId);
+            } else {
+                int attachmentId = database.saveFile(fileName, "File");
+                int msgId = server.broadcast(username, "File sent: [File Name: " + fileBaseName + "] [Size: " + getFormatFileSize(fileLength) + "] [ID: " + attachmentId + "]");
+                database.linkFile(msgId, attachmentId);
+            }
         }
     }
 
@@ -174,8 +180,11 @@ public class MsgTask implements Runnable {
         out.flush();
         Thread.sleep(500);
 
-        String requestedFile = message.split(" ")[1];
-        File file = new File(localPath + File.separatorChar + requestedFile);
+        System.out.println(message);
+        String[] parts = message.split(" ");
+
+        int requestedFileId = Integer.parseInt(message.split(" ")[1]); // Attachment ID
+        File file = database.getFile(requestedFileId);
 
         dos.writeUTF(file.getName());
         dos.flush();
@@ -192,8 +201,8 @@ public class MsgTask implements Runnable {
             }
         }
 
-        server.broadcast(Server.ADMIN, "User " + username + " has downloaded a file successfully");
-        server.broadcast(Server.ADMIN, "[File Name: " + file.getName() + "] [Size: " + getFormatFileSize(file.length()) + "]");
+//        server.broadcast(Server.ADMIN, "User " + username + " has downloaded a file successfully");
+//        server.broadcast(Server.ADMIN, "[File Name: " + file.getName() + "] [Size: " + getFormatFileSize(file.length()) + "]");
     }
 
     /**
@@ -205,8 +214,6 @@ public class MsgTask implements Runnable {
         synchronized (Server.sockets) {
             Server.sockets.remove(server.getAddress(socket));
         }
-//        socket.shutdownInput();
-//        socket.shutdownOutput();
         socket.close();
 
         if (notifyUser && !username.equals("Guest")) {

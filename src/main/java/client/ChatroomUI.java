@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static Utils.ResourceLoader.loadProperties;
 
@@ -35,7 +37,7 @@ public class ChatroomUI extends JFrame {
     private static final String WAV = "audio.wav";
 
     // Map to store file download links
-    private Map<Integer, File> fileDownloadLinks = new HashMap<>();
+    private final Map<Integer, String> fileDownloadLinks = new HashMap<>();
     private int linkCounter = 0;
 
 
@@ -46,7 +48,7 @@ public class ChatroomUI extends JFrame {
         AUDIO_PATH = properties.getProperty("client.audio");
 
         // Set basic window properties
-        setTitle("Chatroom Client");
+        setTitle("Chatroom Client: "+ username);
         setSize(600, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -141,11 +143,17 @@ public class ChatroomUI extends JFrame {
                     AttributeSet attrs = element.getAttributes();
 
                     // 遍历所有链接样式
-                    for (Map.Entry<Integer, File> entry : fileDownloadLinks.entrySet()) {
-                        Style linkStyle = chatPane.getStyle("link-" + entry.getKey());
-                        if (attrs.containsAttributes(linkStyle)) {
+                    for (Map.Entry<Integer, String> entry : fileDownloadLinks.entrySet()) {
+
+                        Style downStyle = chatPane.getStyle("downlink-" + entry.getKey());
+                        Style voiceStyle = chatPane.getStyle("voicelink-" + entry.getKey());
+
+                        if (downStyle != null && attrs.containsAttributes(downStyle)) {
                             downloadFile(entry.getValue());
-                            return;  // 找到并下载后立即返回，避免多次触发
+                            return;
+                        } else if (voiceStyle != null && attrs.containsAttributes(voiceStyle)) {
+                            playVoiceMessage(entry.getValue());
+                            return;
                         }
                     }
                 } catch (Exception ex) {
@@ -167,7 +175,26 @@ public class ChatroomUI extends JFrame {
         //TODO: Update the chat display with the received message
         String[] parts = msg.split(": ", 2);
         String sender = parts[0];
-        appendToChat(sender, parts[1], Color.BLACK, sender.equals("System"));
+        String message = parts[1];
+
+        Pattern pattern = Pattern.compile("\\[ID: (.*?)\\]");
+        Matcher matcher = pattern.matcher(message);
+
+        if(message.startsWith("Sent a voice message:") && matcher.find()){
+            String attachmentId = matcher.group(1);
+            String trimmedMessage = message.substring(0, matcher.start()).trim();
+            appendToChat(sender, trimmedMessage, Color.BLACK, sender.equals("System"));
+            appendVoicePlaybackLink(attachmentId); // playback link
+        }
+        else if(message.startsWith("File sent:")  && matcher.find()){
+            String attachmentId = matcher.group(1);
+            String trimmedMessage = message.substring(0, matcher.start()).trim();
+            appendToChat(sender, trimmedMessage, Color.BLACK, sender.equals("System"));
+            appendFileDownloadLink(trimmedMessage.substring(11),attachmentId); // download link
+        } else {
+            appendToChat(sender, message, Color.BLACK, sender.equals("System"));
+        }
+
     }
 
     private void appendToChat(String sender, String message, Color color, boolean isSystemMessage) {
@@ -219,35 +246,29 @@ public class ChatroomUI extends JFrame {
         int result = fileChooser.showOpenDialog(this);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
-//            appendToChat("System", "File sent: " + selectedFile.getName(), Color.GREEN, true);
-
-            System.out.println("Sending file: " + selectedFile.getName());
             try {
-                client.sendFile(selectedFile, client.GetIp(), client.GetPort());
+                System.out.println("Sending file: " + selectedFile.getName());
+                client.sendFile(selectedFile, client.GetIp(), client.GetPort(), false);
             } catch (Exception e ) {
                 System.err.println("Failed to send file: " + e.getMessage());
             }
-            // 添加文件下载按钮，并传递唯一标识
-//            appendFileDownloadLink(selectedFile);
         }
     }
 
-    private void appendFileDownloadLink(File file) {
+    private void appendFileDownloadLink(String filename, String AttachmentId) {
         try {
-            // 为每个文件链接创建唯一标识
             int linkId = linkCounter++;
 
             // Create a clickable hyperlink-like style for file download
-            Style linkStyle = chatPane.addStyle("link-" + linkId, null);
+            Style linkStyle = chatPane.addStyle("downlink-" + linkId, null);
             StyleConstants.setForeground(linkStyle, Color.BLUE);
             StyleConstants.setUnderline(linkStyle, true);
 
-            // 将文件存储在映射中，使用唯一标识作为键
-            fileDownloadLinks.put(linkId, file);
+            fileDownloadLinks.put(linkId, filename + "/" + AttachmentId);
 
             // Insert download link with unique identifier
             chatDocument.insertString(chatDocument.getLength(),
-                    "Download: " + file.getName() + " [Link-" + linkId + "]\n",
+                    "Download: " + filename + " [downlink-" + linkId + "]\n",
                     linkStyle
             );
 
@@ -257,32 +278,32 @@ public class ChatroomUI extends JFrame {
     }
 
 
-    private void downloadFile(File sourceFile) {
-        JFileChooser saveChooser = new JFileChooser();
-        saveChooser.setSelectedFile(sourceFile);
-        int result = saveChooser.showSaveDialog(this);
+    private void downloadFile(String filename_id) throws IOException, InterruptedException {
+        String[] parts = filename_id.split("/", 2);
+        String AttachmentId = parts[1];
 
+        JFileChooser saveChooser = new JFileChooser();
+
+        // get the file name
+        Pattern pattern = Pattern.compile("\\[File Name: (.*?)\\]");
+        Matcher matcher = pattern.matcher(parts[0]);
+        if (matcher.find()) {
+            String filename = matcher.group(1);
+            saveChooser.setSelectedFile(new File(filename));
+        }
+
+        int result = saveChooser.showSaveDialog(this);
         if (result == JFileChooser.APPROVE_OPTION) {
             File destinationFile = saveChooser.getSelectedFile();
-            try {
-                // 实际文件复制逻辑
-                java.nio.file.Files.copy(
-                        sourceFile.toPath(),
-                        destinationFile.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                );
-                JOptionPane.showMessageDialog(this,
-                        "File downloaded successfully: " + destinationFile.getName(),
-                        "Download Complete",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this,
-                        "Download failed: " + e.getMessage(),
-                        "Download Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
+            //TODO: Download the file and save it to the selected location
+
+            client.receiveFile(AttachmentId, client.GetIp(), client.GetPort(), destinationFile.getAbsolutePath());
+
+            JOptionPane.showMessageDialog(this,
+                    "File downloaded successfully: " + destinationFile.getName(),
+                    "Download Complete",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
         }
     }
 
@@ -307,57 +328,44 @@ public class ChatroomUI extends JFrame {
                 String wavPath = AUDIO_PATH + File.separatorChar + WAV;
 
                 Pcm2Wav.convertAudioFiles(new String[]{pcmPath, wavPath});
-                client.sendFile(new File(wavPath), client.GetIp(), client.GetPort());
+                client.sendFile(new File(wavPath), client.GetIp(), client.GetPort(), true);
                 System.out.printf("Record the AUDIO, path:%s\n", wavPath);
             }
-
-            /*// 语音录制模拟
-            File tempVoiceFile = File.createTempFile("voice_message", ".wav");
-            appendToChat("System", "Voice message recorded", Color.GREEN, true);
-            appendVoicePlaybackLink(tempVoiceFile);*/
         } catch (Exception e) {
             e.printStackTrace();
-            }
+        }
     }
 
-    private void appendVoicePlaybackLink(File voiceFile) {
+    private void appendVoicePlaybackLink(String AttachmentId) {
         try {
+            int linkId = linkCounter++;
+
             // Create a clickable hyperlink-like style for voice playback
-            Style linkStyle = chatPane.addStyle("link", null);
-            StyleConstants.setForeground(linkStyle, Color.GREEN);
+            Style linkStyle = chatPane.addStyle("voicelink-" + linkId, null);
+            StyleConstants.setForeground(linkStyle, Color.MAGENTA);
             StyleConstants.setUnderline(linkStyle, true);
 
-            // Insert playback link
+            fileDownloadLinks.put(linkId, AttachmentId);
+
             chatDocument.insertString(chatDocument.getLength(),
                     "Play Voice Message\n",
                     linkStyle
             );
-
-            // Add mouse listener to handle voice playback
-            chatPane.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    int offset = chatPane.viewToModel(e.getPoint());
-                    try {
-                        if (chatDocument.getCharacterElement(offset).getAttributes().containsAttributes(linkStyle)) {
-                            playVoiceMessage(voiceFile);
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            });
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
     }
 
-    private void playVoiceMessage(File voiceFile) {
+    private void playVoiceMessage(String AttachmentId) {
         try {
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(voiceFile);
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioInputStream);
-            clip.start();
+            String path = AUDIO_PATH + File.separatorChar + WAV;
+            client.receiveFile(AttachmentId, client.GetIp(), client.GetPort(), path);
+            AudioPlayer.playAndDelete(path);
+
+//            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(voiceFile);
+//            Clip clip = AudioSystem.getClip();
+//            clip.open(audioInputStream);
+//            clip.start();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
                     "Unable to play voice message: " + e.getMessage(),

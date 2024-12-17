@@ -133,7 +133,7 @@ public class Client {
         out_file.flush();
     }
 
-    public void sendFile(File file, String ip, int port) throws IOException, InterruptedException {
+    public void sendFile(File file, String ip, int port, boolean isVoice) throws IOException, InterruptedException {
         if (!file.exists()){
             System.err.println("File not found!");
             return;
@@ -149,7 +149,7 @@ public class Client {
                 DataOutputStream dos_file = new DataOutputStream(socket_file.getOutputStream());
 
                 speak_file(this.Client_username, socket_file);
-                speak_file("upload", socket_file);
+                speak_file("upload " + (isVoice ? "voice" : "file"), socket_file);
                 Thread.sleep(500);
                 FileInputStream fis = new FileInputStream(file);
                 dos_file.writeUTF(file.getName());
@@ -173,7 +173,7 @@ public class Client {
         }).start();            
     }
 
-    public void receiveFile(String str, String ip, int port) throws IOException, InterruptedException {
+    public void receiveFile(String AttachmentId, String ip, int port, String sPath) throws IOException, InterruptedException {
         new Thread(() -> {
             try {
                 synchronized (file_num) {
@@ -186,10 +186,9 @@ public class Client {
                 BufferedReader in_file = new BufferedReader(new InputStreamReader(socket_file.getInputStream()));
                 
                 speak_file(this.Client_username, socket_file);
-                String sPath = str.split(" ")[1];
-                //System.out.printf("byrbyr, path:%s\n", sPath);
-                //System.out.printf("speak, path:%s\n", "download " + str.split(" ")[0] +" " +sPath);
-                speak_file("download" + " " + str.split(" ")[0] +" " +sPath, socket_file);
+                //TODO: Change "download" in server
+                speak_file("download" + " " + AttachmentId, socket_file);
+
                 boolean isFile = false;
                 DataInputStream dis = new DataInputStream(socket_file.getInputStream());
                 while (true) {
@@ -197,8 +196,10 @@ public class Client {
                         String fileName = dis.readUTF();
                         //System.out.printf("qnmqnmqnm, path:%s\n", fileName);
                         long fileLen = dis.readLong();
-                        File directory = new File(sPath);
-                        File file = new File(directory.getAbsolutePath() + File.separatorChar + fileName);
+
+                        File file = new File(sPath);
+                        System.out.println("PATH: "+file.getAbsolutePath());
+
                         FileOutputStream fos = new FileOutputStream(file);
                         byte[] bytes = new byte[1024];
                         int total = 0;

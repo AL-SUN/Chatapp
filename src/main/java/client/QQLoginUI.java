@@ -12,8 +12,6 @@ public class QQLoginUI extends JFrame {
 	private JButton loginButton;
 	private JButton registerButton;
 
-	private AuthClient guest;
-
 	private String IP;
 	private int Port;
 	// cloud: "104.198.172.29", 60001
@@ -24,8 +22,6 @@ public class QQLoginUI extends JFrame {
 		IP = properties.getProperty("server.ip");
 		Port = Integer.parseInt(properties.getProperty("server.port"));
 
-		guest = new AuthClient(IP, Port, QQLoginUI.this);
-		
 		// Set up the frame
 		setTitle("Chatapp");
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -132,6 +128,7 @@ public class QQLoginUI extends JFrame {
 		@Override
 		protected Boolean doInBackground() throws Exception {
 			// login verification logic
+			AuthClient guest = new AuthClient(IP, Port, QQLoginUI.this);
 			int verify = guest.GuestSpeakAndVerify("Login " + username + " " + password);
             return verify == 1;
         }
@@ -163,7 +160,38 @@ public class QQLoginUI extends JFrame {
 		}
 
 		// registration logic
-		guest.GuestSpeakAndVerify("Register " + username + " " + password);
+		new RegisterWorker(username, password).execute();
+	}
+
+	private class RegisterWorker extends SwingWorker<Boolean, Void> {
+		private final String username;
+		private final String password;
+
+		public RegisterWorker(String username, String password) {
+			this.username = username;
+			this.password = password;
+		}
+
+		@Override
+		protected Boolean doInBackground() throws Exception {
+			// login verification logic
+			AuthClient guest = new AuthClient(IP, Port, QQLoginUI.this);
+			int verify = guest.GuestSpeakAndVerify("Register " + username + " " + password);
+			return verify == 3;
+		}
+
+		@Override
+		protected void done() {
+			try {
+				boolean Success = get();
+				if (Success) {
+					usernameField.setText("");
+					passwordField.setText("");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public void showDialog(String s) {

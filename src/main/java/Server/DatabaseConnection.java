@@ -101,23 +101,48 @@ public class DatabaseConnection {
         return msgId;
     }
 
-    /**
-     * Save the file to the server and update the file path in the database
-     * @param messageId the message ID to associate with the file
-     * @param filename the name of the file saved temporarily
-     * @param fileType File or Audio
-     */
-    public void saveFile(int messageId, String filename, String fileType) {
+    public File getFile(int attachmentId) {
+        try (Connection conn = connect()) {
+            String sql = "SELECT file_path FROM Attachments WHERE attachment_id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setInt(1, attachmentId);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        String filePath = rs.getString("file_path");
+                        System.out.println("File path: " + filePath);
+                        return new File(filePath);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to get files: " + e.getMessage());
+        }
+        return null;
+    }
+
+
+    public void linkFile(int msgId, int attachmentId) {
+        try (Connection conn = connect()) {
+            String updateSql = "UPDATE Attachments SET message_id = ? WHERE attachment_id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+                pstmt.setInt(1, msgId);
+                pstmt.setInt(2, attachmentId);
+                pstmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to link file: " + e.getMessage());
+        }
+    }
+    public int saveFile(String filename, String fileType) {
+        int attachmentId = -1;
         try (Connection conn = connect()) {
             // 1.insert a new record to get attachment_id
-            String sql = "INSERT INTO Attachments (file_name, message_id, file_path, file_type) VALUES (?, ?, '', ?)";
-            int attachmentId = -1;
+            String sql = "INSERT INTO Attachments (file_name, message_id, file_path, file_type) VALUES (?, 1, '', ?)";
             String fileBaseName=  filename.split("_")[2]; // remove username and timestamp
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql,PreparedStatement.RETURN_GENERATED_KEYS)) {
                 pstmt.setString(1,fileBaseName);
-                pstmt.setInt(2, messageId);
-                pstmt.setString(3, fileType);
+                pstmt.setString(2, fileType);
                 pstmt.executeUpdate();
 
                 // get the generated attachment_id
@@ -128,7 +153,7 @@ public class DatabaseConnection {
             }
             if (attachmentId == -1) {
                 System.err.println("Failed to insert attachment record.");
-                return;
+                return -1;
             }
 
             // 2. save a new file name using attachment_id
@@ -142,7 +167,7 @@ public class DatabaseConnection {
                 Files.copy(sourcePath, targetPath);
             } catch (IOException e) {
                 System.err.println("Failed to copy file: " + e.getMessage());
-                return;
+                return -1;
             }
 
             // 3. update the file path in the database
@@ -158,6 +183,7 @@ public class DatabaseConnection {
         } catch (SQLException e) {
             System.err.println("Failed to save file: " + e.getMessage());
         }
+        return attachmentId;
     }
 
     public void initDatabase() {
