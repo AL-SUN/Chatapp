@@ -129,7 +129,7 @@ Chatapp/
 
 - Register two users via the Login Screen to chat.
 
-![image-20241216235340373](.\img\image-20241216235340373.png)
+![image-20241216235340373](/img/image-20241216235340373.png)
 
 3.**Main UI Features**:
 
@@ -138,4 +138,4 @@ Chatapp/
 - **Voice Recording**: Record and play audio messages.
 - **Links**: Clickable links for file downloads and voice playback.
 
-![image-20241216235619456](.\img\image-20241216235619456.png)
+![image-20241216235619456](/img/image-20241216235619456.png)
